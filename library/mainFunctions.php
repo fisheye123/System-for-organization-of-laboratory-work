@@ -17,7 +17,7 @@ function loadPage ($twig, $controllerName, $actionName = 'index') {
     //подключение контроллера
     include_once PathPrefix . $controllerName . PathPostfix;
     
-    //вызов экшена
+    //вызов функции (экшн)
     $function = $actionName . 'Action';
     $function($twig);
 }
@@ -36,12 +36,11 @@ function myLoadTemplate ($twig, $templateName) {
  * Функция отладки. Останавливает работу программы выводя $value
  * 
  * @param variant $value переменная для вывода на страницу
- * @param $die определяет завершение программы (1 - да, 0 - нет)
+ * @param $die Определяет остановку программы. Если 0, то прерывания не проиходит
  */
-function d ($value = null, $die = 1) {
-    echo 'Debug: <br/><pre>';
+function d($value = null, $die = 1) {
+    echo 'Debug: ';
     print_r($value);
-    echo '</pre>';
     
     if ($die) {
         die;
@@ -52,7 +51,7 @@ function d ($value = null, $die = 1) {
  * Преобразование выборки (SELECT) в ассоциативный массив
  * 
  * @param recordset $rs набор строк - результат работы SELECT
- * @return array
+ * @return array преобразованный массив
  */
 function createRsTwigArray($rs) {
     if (!$rs) {
@@ -68,23 +67,26 @@ function createRsTwigArray($rs) {
 }
 
 /**
- * Перенаправление
+ * Перенаправление по адресу
  * 
- * @param string $url адрес для перенаправления
+ * @param string $url адрес
  */
 function redirect($url = '/') {
     header("Location: {$url}");
     exit();
 }
 
-
+/**
+ * Формирование навигации "хлебные крошки"
+ * 
+ * @return array массив, содержащий элементы крошек. Элемент содержит url, text.
+ * Где url - ссылка на элемент, text - название элемента
+ */
 function breadcrumbs() {
     //Получение текущего url 
     $cur_url = $_SERVER['REQUEST_URI'];
     
     $urls = explode('/', $cur_url);
-    
-    //Содержит информацию о названиях элементов «хлебных крошек» и их url
     $crumbs = array();
     $crumbs[0]['url'] = "/";
     $crumbs[0]['text'] = 'Главная страница';
@@ -99,13 +101,34 @@ function breadcrumbs() {
                     $crumbs[$key]['url'] = "/course/{$urls[$key-1]}/lab/{$urls[$key+1]}/";
                     $crumbs[$key]['text'] = getLabById($urls[$key+1])['title'];
                     break;
-                case 'teacher' : $crumbs[$key]['text'] = 'Преподаватель';
+                case 'teacher' :
+                    $crumbs[$key]['url'] = "/teacher/";
+                    $crumbs[$key]['text'] = 'Преподаватель';
+                    break;
+                case 'courseadd' :
+                    unset($crumbs[$key-1]);
+                    $crumbs[$key]['url'] = "/courseadd/";
+                    $crumbs[$key]['text'] = 'Добавить курс';
+                    break;
+                case 'labadd' :
+                    unset($crumbs[$key-1]);
+                    $crumbs[$key]['url'] = "/labadd/";
+                    $crumbs[$key]['text'] = 'Добавить лабораторную';
                     break;
             }
         }
     }
     
     return $crumbs;
+}
+
+function lastInsertId($db) {
+    $sql = "SELECT LAST_INSERT_ID()";
+    $rs = $db->query($sql);
+    $rs = createRsTwigArray($rs);
+    $res = $rs[0]['LAST_INSERT_ID()'];
+    
+    return $res;
 }
 
 

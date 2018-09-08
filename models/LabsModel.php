@@ -15,16 +15,11 @@
 function getAllLab() {
     $sql = "SELECT * 
             FROM `lab`
-            ORDER BY `number`";
+            ORDER BY `course_id`, `number`";
     
     $rs = db()->query($sql);
-    $rsTwig = array();
-    
-    while ($row = $rs->fetch_assoc()) {
-        $rsTwig[] = $row;
-    }
 
-    return $rsTwig;
+    return createRsTwigArray($rs);
 }
 
 function getLastLab($courseId) {
@@ -121,6 +116,8 @@ function addNewLab($title, $task, $courseId) {
             `lab` (`number`, `title`, `task`, `access`, `course_id`)
             VALUES ('{$number}', '{$title}', '{$task}', 0, '{$courseId}')";
     
+    //db()->query($sql);
+    
     $rs = db()->query($sql);
     
     if ($rs) {
@@ -140,5 +137,84 @@ function addNewLab($title, $task, $courseId) {
         $rs['success'] = 0;
     }
     
+    //РАЗОБРАТЬСЯ ПОЧЕМУ ВСЕГДА ВОЗВРАЩАЕТ НОЛЬ
+    //УДАЛИТЬ ПРОВЕРКУ IF КОГДА РЕШУ ПРОБЛЕМУ 
+    //$id = mysqli_insert_id(db());
+    
     return $rs;
 }
+
+
+function updateLabData($labId, $newNumber=-1, $newTitle='', $newTask='', $newAccess=-1, $newCourseId=-1) {
+    $set = array();
+    
+    if($newNumber > -1) {
+        $set[] = "`number` = '{$newNumber}'";
+    }
+    
+    if($newTitle) {
+        $set[] = "`title` = '{$newTitle}'";
+    }
+    
+    if($newTask) {
+        $set[] = "`task` = '{$newTask}'";
+    }
+    //!!!!!!!!!!!!!!!!! - 0/1
+    if($newAccess > -1) {
+        $set[] = "`access` = '{$newAccess}'";
+    }
+    // !!!!!!!!!!!!!!!! is defined
+    if($newCourseId > -1) {
+        $set[] = "`course_id` = '{$newCourseId}'";
+    }
+    
+    $setStr = implode($set, ", ");
+    $sql = "UPDATE lab
+            SET {$setStr}
+            WHERE id = '{$labId}'";
+    
+    $rs = db()->query($sql);
+    
+    return $rs;
+}
+
+
+/**
+ * Получение lab_exec_id соответсвующих id из таблицы lab_exec
+ * 
+ * @param integer $id лабораторной
+ * @return array массив lab_exec_id
+ */
+function getLabExecId($id) {
+    $sql = "SELECT `id` FROM `lab_exec` WHERE `lab_id` = '{$id}'";
+    
+    $rs = db()->query($sql);
+    
+    return createRsTwigArray($rs);
+}
+
+/**
+ * Удаление лабораторной
+ * 
+ * @param integer $id лабораторной
+ * @return array
+ */
+function deleteLab($id) {
+    $sql = "";
+    $labExec = getLabExecId($id);
+    if (!empty($labExec)) {
+        $count = count($labExec);        
+        for ($i = 0; $i < $count; $i++) {
+            $labExecId = $labExec[$i]['id'];
+            $sql .= "DELETE FROM `lab_history` WHERE `lab_exec_id` = {$labExecId}; ";
+            $sql .= "DELETE FROM `student_lab_exec` WHERE `lab_exec_id` = {$labExecId}; ";   
+        }
+    }
+    
+    $sql .= "DELETE FROM `lab_exec` WHERE `lab_id` = {$id}; ";
+    $sql .= "DELETE FROM `lab` WHERE `id` = {$id}; ";
+    $rs = db()->multi_query($sql);
+    
+    return $rs;
+}
+

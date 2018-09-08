@@ -2,7 +2,7 @@
 
 /**
  * 
- * Контроллер функций пользователя
+ * Контроллер страницы преподавателя и функции работы с ним
  * 
  */
 
@@ -11,183 +11,243 @@ include_once '../models/LabsModel.php';
 include_once '../models/TeachersModel.php';
 
 /**
- * AJAX регистрация преподавателя.
- * Инициализация сессионной переменной ($SESSION['teacher'])
+ * Загрузка главной страницы преподавателя
  * 
- * @return json массив данных нового преподавателя
+ * @param object $twig - шаблонизатор
+ */
+function indexAction ($twig) {
+    $rsCourses = getCourseWithLab();
+    
+    if(isset($_SESSION['teacher'])){
+        $tpppl = myLoadTemplate($twig, 'add_lab');
+        echo $tpppl->render(array(
+            'title' => 'TomskSoft',
+            'rsCourses' => $rsCourses,
+            'arTeacher' => $_SESSION['teacher']
+        ));
+    } else {
+        redirect();
+    }
+}
+
+/**
+ * Загрузка страницы преподавателя
+ * 
+ * @param object $twig шаблонизатор
+ */
+function aboutAction($twig) {
+    $crumbs = breadcrumbs();
+    $rsCourses = getCourseWithLab();
+    $title = "Страница пользователя {$_SESSION['teacher']['login']}";
+    
+    if(isset($_SESSION['teacher'])){
+        $tpppl = myLoadTemplate($twig, 'teacher');
+        echo $tpppl->render(array(
+            'title' => $title,
+            'crumbs' => $crumbs,
+            'rsCourses' => $rsCourses,
+            'arTeacher' => $_SESSION['teacher']
+        ));
+    } else {
+        redirect();
+    }
+}
+
+/**
+ * Регистрация преподавателя
+ * 
+ * @return json массив данных зарегистрированного преподавателя
  */
 function registerAction() {
-    $login = isset($_REQUEST['login']) ? $_REQUEST['login'] : null;
-    $login = trim($login);
+    $login = trim(filter_input(INPUT_POST, 'login'));
+    $name = filter_input(INPUT_POST, 'name');
+    $password = filter_input(INPUT_POST, 'password');
+    $email = filter_input(INPUT_POST, 'email');
     
-    $password = isset($_REQUEST['password']) ? $_REQUEST['password'] : null;
-    $name = isset($_REQUEST['name']) ? $_REQUEST['name'] : null;
-    
-    $email = isset($_REQUEST['email']) ? $_REQUEST['email'] : null;
-    
-    
-    $resData = null; //хранит промежуточные данные об ошибках
-    $resData = checkRegisterParam($login, $password);
-    
-    if(!$resData && checkTeacherLogin($login)) {
+    $resData = checkRegisterParam($name, $login, $password);
+    if(!isset($resData['success']) && checkTeacherLogin($login)) {
         $resData['success'] = FALSE;
         $resData['message'] = "Пользователь с таким логином ('{$login}') уже зарегистрирован";
     }
     
-    if (!$resData) {
+    if (!isset($resData['success'])) {
         $passwordMD5 = md5(trim($password));
         
         $teacherData = registerNewTeacher($name, $email, $login, $passwordMD5);
-        if($teacherData['success']) {
+        if(isset($teacherData['success'])) {
             $resData['message'] = 'Пользователь зарегистрирован';
-            $resData['success'] = 1;
+            $resData['success'] = TRUE;
             
             $teacherData = $teacherData[0];
-            $resData['teacherName'] = $teacherData['name'] ? $teacherData['name'] : $teacherData['login'];
+            $resData['teacherName'] = $teacherData['name'];
             $resData['teacherEmail'] = $email;
             
             $_SESSION['teacher'] = $teacherData;
             $_SESSION['teacher']['displayName'] = $resData['teacherName'];
         } else {
-            $resData['success'] = 0;
+            $resData['success'] = FALSE;
             $resData['message'] = 'Ошибка регистрации';
         }
-        
     }
     
     echo json_encode($resData);
 }
 
 /**
- * Разлогин пользователя
+ * Обновление данных преподавателя из админки (из admin.js)
  * 
+ * @return json массив, содержащий информацию об обновлении данных преподавателя
  */
-function logoutAction(){
-    if(isset($_SESSION['teacher'])){
-        unset($_SESSION['teacher']);
-    }
+function updateteacherAction() {
+    $teacherId = filter_input(INPUT_POST, 'teacherId');
+    $Name = filter_input(INPUT_POST, 'newName');
+    $Email = filter_input(INPUT_POST, 'newEmail');
+    $Login = filter_input(INPUT_POST, 'newLogin');
+    $Password = filter_input(INPUT_POST, 'newPassword');
     
-    redirect();
-}
-
-/**
- * AJAX авторизация пользователя
- * 
- * @return json массив данных пользователя
- */
-function loginAction() {
-    $login = isset($_REQUEST['login']) ? $_REQUEST['login'] : null;
-    $login = trim($login);
-    
-    $password = isset($_REQUEST['password']) ? $_REQUEST['password'] : null;
-    $password = md5(trim($password));
-    
-    $userData = loginUser($login, $password);
-    
-    if($userData['success']) {
-        $userData = $userData[0];
-        
-        $_SESSION['teacher'] = $userData;
-        $_SESSION['teacher']['displayName'] = $userData['name'] ? $userData['name'] : $userData['login'];
-        
-        $resData = $_SESSION['teacher'];
-        $resData['success'] = 1;
-    } else {
-        $resData['success'] = 0;
-        $resData['message'] = 'Неверный логин или пароль';
+    $resData = checkRegisterParam($Name, $Login, $Password);
+    if (!isset($resData['success'])) {
+        //Нет проверки на совпадение логинов
+        $res = updateTeacherData($teacherId, $Name, $Email, $Login, $Password);
+        if($res) {
+            $resData['success'] = 1;
+            $resData['message'] = 'Данные преподавателя обновлены';
+        } else {
+            $resData['success'] = 0;
+            $resData['message'] = 'Ошибка изменения данных преподавателя';
+        }
     }
     
     echo json_encode($resData);
-}
-
-/**
- * Формирование страницы преподавателя
- * 
- * @link /teacher/
- * @param object $twig шаблонизатор
- */
-function indexAction($twig) {    
-    $crumbs = breadcrumbs();
     
-    //получение списка курсов и лабораторных в них
-    $rsCourses = getAllCourses();
     
-    $title = "Страница пользователя {$_SESSION['teacher']['login']}";
     
-    $tpppl = myLoadTemplate($twig, 'teacher');
+    $rsCourses = getCourseWithLab();
     
-    //Исправить. Проверку на существование сессии вынести в index.php
     if(isset($_SESSION['teacher'])){
+        $tpppl = myLoadTemplate($twig, 'add_lab');
         echo $tpppl->render(array(
-            'title' => $title,
-            'crumbs' => $crumbs,
+            'title' => 'TomskSoft',
             'rsCourses' => $rsCourses,
-
             'arTeacher' => $_SESSION['teacher']
         ));
-    } else { //если пользователь не залогинен, то перенаправляем на главную страницу
+    } else {
         redirect();
     }
 }
 
 /**
- * Обновление данных преподавателя
+ * Обновление данных преподавателя из страницы преподавателя (из teacher.js)
  * 
- * @return json обновленные данные
+ * @return json массив, содержащий информацию об обновлении данных преподавателя
  */
 function updateAction() {
-    //Если пользователь не авторизован, то переход на главную страницу
-    if( !isset($_SESSION['teacher']) ) {
-        redirect();
-    }
-    
     $resData = array();
-    //Можно заменить $_REQUEST на $_POST в целях безопастности
-    $name = isset($_REQUEST['name']) ? $_REQUEST['name'] : NULL;
-    $email = isset($_REQUEST['email']) ? $_REQUEST['email'] : NULL;
-    $password1 = isset($_REQUEST['password1']) ? $_REQUEST['password1'] : NULL;
-    $password2 = isset($_REQUEST['password2']) ? $_REQUEST['password2'] : NULL;
-    $curPassword = isset($_REQUEST['curPassword']) ? $_REQUEST['curPassword'] : NULL;
     
-    if($password1 !== $password2) {
+    $name = filter_input(INPUT_POST, 'name');
+    $email = filter_input(INPUT_POST, 'email');
+    $pass1 = filter_input(INPUT_POST, 'password1');
+    $pass2 = filter_input(INPUT_POST, 'password2');
+    $curPass = filter_input(INPUT_POST, 'curPassword');
+    
+    if($pass1 !== $pass2) {
         $resData['message'] = 'Введенные пароли не совпадают';
         echo json_encode($resData);
-        return false;
+        return FALSE;
     }
     
-    //Проверка правильности введенного текущего пароля
-    $curPasswordMD5 = md5($curPassword);
-    if( !$curPassword || ($_SESSION['teacher']['password'] != $curPasswordMD5) ) {
+    $curPasswordMD5 = md5($curPass);
+    if( !$curPass || ($_SESSION['teacher']['password'] != $curPasswordMD5) ) {
         $resData['success'] = 0;
         $resData['message'] = 'Текущий пароль введен неверно';
         echo json_encode($resData);
         return FALSE;
     }
     
-    //Обновление данных преподавателя
-    $res = updateTeacherData($name, $email, $password1, $password2, $curPasswordMD5);
-    
-    if($res) {
-        $resData['success'] = 1;
-        $resData['message'] = 'Изменения сохранены';
-        $resData['teacherName'] = $name;
-        
-        $_SESSION['teacher']['name'] = $name;
-        $_SESSION['teacher']['email'] = $email;
-        
-        $newPassword = $_SESSION['teacher']['password'];
-        if( $password1 && ($password1 == $password2) ) {
-            $newPassword = md5(trim($password1));
+    $resData = checkTeacherName($name);
+    if (!isset($resData['success'])) {
+        //Нет проверки на совпадение логинов
+        $res = updateTeacherDatalk($name, $email, $pass1, $pass2, $curPasswordMD5);
+        if($res) {
+            $resData['success'] = 1;
+            $resData['message'] = 'Изменения сохранены';
+            $resData['teacherName'] = $name;
+
+            $_SESSION['teacher']['name'] = $name;
+            $_SESSION['teacher']['email'] = $email;
+
+            $newPassword = $_SESSION['teacher']['password'];
+            if( $pass1 && ($pass1 == $pass2) ) {
+                $newPassword = md5(trim($pass1));
+            }
+
+            $_SESSION['teacher']['password'] = $newPassword;
+            $_SESSION['teacher']['displayName'] = $name ? $name : $_SESSION['teacher']['login'];
+        } else {
+            $resData['success'] = 0;
+            $resData['message'] = 'Ошибка сохранения данных';
         }
-        
-        $_SESSION['teacher']['password'] = $newPassword;
-        $_SESSION['teacher']['displayName'] = $name ? $name : $_SESSION['teacher']['login'];
-    } else {
-        $resData['success'] = 0;
-        $resData['message'] = 'Ошибка сохранения данных';
     }
     
     echo json_encode($resData);
 }
 
+/**
+ * Изменение курсов преподавателя
+ * 
+ * @return json массив данных курсов преподавателя
+ */
+function updatecourseAction() {
+    $login = trim(filter_input(INPUT_POST, 'login'));
+    $name = filter_input(INPUT_POST, 'name');
+    $password = filter_input(INPUT_POST, 'password');
+    $email = filter_input(INPUT_POST, 'email');
+    
+    $resData = checkRegisterParam($name, $login, $password);
+    if(!isset($resData['success']) && checkTeacherLogin($login)) {
+        $resData['success'] = FALSE;
+        $resData['message'] = "Пользователь с таким логином ('{$login}') уже зарегистрирован";
+    }
+    
+    if (!isset($resData['success'])) {
+        $passwordMD5 = md5(trim($password));
+        
+        $teacherData = registerNewTeacher($name, $email, $login, $passwordMD5);
+        if(isset($teacherData['success'])) {
+            $resData['message'] = 'Пользователь зарегистрирован';
+            $resData['success'] = TRUE;
+            
+            $teacherData = $teacherData[0];
+            $resData['teacherName'] = $teacherData['name'];
+            $resData['teacherEmail'] = $email;
+            
+            $_SESSION['teacher'] = $teacherData;
+            $_SESSION['teacher']['displayName'] = $resData['teacherName'];
+        } else {
+            $resData['success'] = FALSE;
+            $resData['message'] = 'Ошибка регистрации';
+        }
+    }
+    
+    echo json_encode($resData);
+}
 
+/**
+ * Удаление преподавателя
+ * 
+ * @return json массив, содержащий информацию об удалении преподавателя
+ */
+function deleteteacherAction() {
+    $teacherId = filter_input(INPUT_POST, 'teacherId');
+    
+    $res = deleteTeacher($teacherId);
+    if($res) {
+        $resData['success'] = 1;
+        $resData['message'] = 'Преподаватель удален';
+    } else {
+        $resData['success'] = 0;
+        $resData['message'] = 'Ошибка удаления преподавателя';
+    }
+    
+    echo json_encode($resData);
+}

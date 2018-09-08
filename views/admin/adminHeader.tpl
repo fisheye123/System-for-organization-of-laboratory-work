@@ -6,15 +6,32 @@
     
     <!-- Поправить линк. Нужно чтобы доставал через Twig TemplateWebPath -->
     <link rel="stylesheet" href="/templates/admin/css/main.css" type="text/css"/>
-    <!-- Поключить локально посленюю версию jquery -->
-    <!--<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.1.min.js"></script>-->
-    <script type="text/javascript" src="http://code.jquery.com/jquery-3.3.1.min.js"></script>
-    <script src="/js/admin.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="/templates/default/css/main.css" type="text/css"/>
+    
+    <script type="text/javascript" src="/js/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript" src="/js/main.js"></script>
+    <script type="text/javascript" src="/templates/admin/js/admin.js"></script>
+    <script type="text/javascript" src="/templates/default/js/teacher.js"></script>
+    <script type="text/javascript" src="/templates/course/js/course.js"></script>
 </head>
 <body>
     <div class="wrapper">
         <header class="header">
-            <h1>{{ title }}</h1> 
+            <div class="user-block">
+                <div class="user-block__name">
+                    {% if arAdmin is defined %}
+                        <div id="teacherBox">
+                            {{ arAdmin['displayName'] }}<br />
+                            <a href="/auth/logout/" id="teacherLogoutImg" onclick="logout();">
+                                <div class="exit">
+                                    <!-- Поправить линк. Нужно чтобы доставал через Twig TemplateWebPath -->
+                                    <img class="img" width="10" height="10" src="/templates/default/sourses/logout.svg"/>
+                                </div>
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
             
         </header>
         
@@ -24,4 +41,3 @@
             
             <div class="page">
                 
-

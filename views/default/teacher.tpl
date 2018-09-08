@@ -16,23 +16,23 @@
                 </tr>
                 <tr>
                     <td>Имя:</td>
-                    <td><input type="text" id="newName" value="{{ arTeacher['name'] }}"></td>
+                    <td><input type="text" id="newName" name="name" value="{{ arTeacher['name'] }}"></td>
                 </tr>
                 <tr>
                     <td>Email:</td>
-                    <td><input type="text" id="newEmail" value="{{ arTeacher['email'] }}"></td>
+                    <td><input type="text" id="newEmail" name="email" value="{{ arTeacher['email'] }}"></td>
                 </tr>
                 <tr>
                     <td>Новый пароль:</td>
-                    <td><input type="password" id="newPassword1" value=""></td>
+                    <td><input type="password" id="newPassword1" name="password1" value=""></td>
                 </tr>
                 <tr>
                     <td>Повторите пароль:</td>
-                    <td><input type="password" id="newPassword2" value=""></td>
+                    <td><input type="password" id="newPassword2" name="password2" value=""></td>
                 </tr>
                 <tr>
                     <td>Чтобы сохранить изменения введите текущий пароль:</td>
-                    <td><input type="password" id="curPassword" value=""></td>
+                    <td><input type="password" id="curPassword" name="curPassword" value=""></td>
                 </tr>
                 <tr>
                     <td>&nbsp;</td>

@@ -15,18 +15,12 @@
                 <div class="add-lab-form__wrapper add-lab-form__wrapper_right">
                     <input type="text" id="lab_title" name="lab_title" value="">
                     <textarea id="lab_task" name="lab_task" form="add-lab-form" class="add-lab-form__textarea"></textarea>
-                    
-                    
-                    
                     <select id="lab_course" name="lab_course">
-                        <option value="">Выберите курс</option>
+                        <option value="0">Выберите курс</option>
                         {% for course in rsCourses %}
                             <option value="{{ course.id }}">{{ course.title }}</option>
                         {% endfor %}
                     </select>
-                    
-                    
-                    
                     <button class="add-lab-form__button add-lab-form__button_file">Прикрепить файл</button>
                 </div>
             </div>

@@ -9,7 +9,7 @@
 /**
  * Подключение к БД
  * 
- * @return object соединения
+ * @return object Объект соединения
  */
 function db() {
     $dblocation = "127.0.0.1"; //$dbhost = "localhost";
@@ -22,11 +22,11 @@ function db() {
     $db->set_charset('utf8');
 
     if ($db->connect_errno) {
-      die('Не удалось подключится к MySQL.'); //MySQL access denied
+      die('MySQL access denied.');
     }
     
     if(!mysqli_select_db($db, $dbname)) {
-        die("Ошибка доступа к БД {$dbname}");
+        die("The database {$dbname} could not be accessed.");
     }
     
     return $db;

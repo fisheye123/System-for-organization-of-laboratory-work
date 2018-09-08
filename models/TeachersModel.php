@@ -7,6 +7,53 @@
  */
 
 /**
+ * Получение всех преподавателей
+ * 
+ * @return array массив лабораторных
+ */
+function getAllTeacher() {
+    $sql = "SELECT * 
+            FROM `teacher`
+            ORDER BY `id`";
+    
+    $rs = db()->query($sql);
+
+    return createRsTwigArray($rs);
+}
+
+/**
+ * Получить данные преподавателя по id
+ * 
+ * @param integer $teacherId ID преподавателя
+ * @return array строка преподавателя
+ */
+function getTeacherById($teacherId) {
+    $teacherId = intval($teacherId);
+    $sql = "SELECT * 
+            FROM `teacher`
+            WHERE `id` = '{$teacherId}'";
+    
+    $rs = db()->query($sql);
+    
+    return $rs->fetch_assoc();
+}
+
+/**
+ * Получение всех курсов данного преподавателя
+ * 
+ * @return array массив курсов
+ */
+function getTeachersCourses($teacherId) {
+    $sql = "SELECT `course_id` 
+            FROM `teacher_course`
+            WHERE `teacher_id` = '{$teacherId}'";
+    
+    $rs = db()->query($sql);
+    
+    return createRsTwigArray($rs);
+}
+
+/**
  * Регистрация нового преподавателя
  * 
  * @param string $name полное ФИО
@@ -65,47 +112,40 @@ function checkTeacherLogin($login) {
     return $rs;
 }
 
-function checkRegisterParam($login, $password) {
-    $res = null;
-    
-    if(!$login) {
+/**
+ * Проверяет существование имени
+ * 
+ * @param string $name
+ * @return array 
+ */
+function checkTeacherName($name) {
+    if(!$name) {
         $res['success'] = FALSE;
-        $res['message'] = "Введите логин";
-    }
-    
-    
-    if(!$password) {
-        $res['success'] = FALSE;
-        $res['message'] = "Введите пароль";
+        $res['message'] = "Введите имя преподавателя ";
     }
     
     return $res;
 }
 
-/**
- * 
- * @param string $login логин
- * @param string $password пароль, защифрованный в MD5
- * @return array
- */
-function loginUser($login, $password) {
-    $login = htmlspecialchars(mysqli_real_escape_string(db(), $login));
-    $password = trim($password);
+function checkRegisterParam($name, $login, $password) {
+    $res['message'] = "Введите ";
     
-    $sql = "SELECT * FROM `teacher`
-            WHERE (`login` = '{$login}' AND `password` = '{$password}')
-            LIMIT 1";
-        
-    $rs = db()->query($sql);
-    $rs = createRsTwigArray($rs);
-    
-    if (isset($rs[0])) {
-        $rs['success'] = 1;
-    } else {
-        $rs['success'] = 0;
+    if(!$name) {
+        $res['success'] = FALSE;
+        $res['message'] = $res['message'] . "имя преподавателя ";
     }
     
-    return $rs;
+    if(!$login) {
+        $res['success'] = FALSE;
+        $res['message'] = $res['message'] . "логин ";
+    }
+    
+    if(!$password) {
+        $res['success'] = FALSE;
+        $res['message'] = $res['message'] . "пароль";
+    }
+    
+    return $res;
 }
 
 /**
@@ -118,7 +158,7 @@ function loginUser($login, $password) {
  * @param string $curPassword текущий пароль
  * @return boolean TRUE в случае успеха
  */
-function updateTeacherData($name, $email, $password1, $password2, $curPassword) {
+function updateTeacherDatalk($name, $email, $password1, $password2, $curPassword) {
     $login = htmlspecialchars(mysqli_real_escape_string(db(), $_SESSION['teacher']['login']));
     $name = htmlspecialchars(mysqli_real_escape_string(db(), $name));
     $email = htmlspecialchars(mysqli_real_escape_string(db(), $email));
@@ -147,6 +187,42 @@ function updateTeacherData($name, $email, $password1, $password2, $curPassword) 
     return $rs;
 }
 
+function updateTeacherData($teacherId, $name='', $email='', $login='', $password='') {
+    $set = array();
 
+    if($name) {
+        $set[] = "`name` = '{$name}'";
+    }
+    
+    if($email) {
+        $set[] = "`email` = '{$email}'";
+    }
+    
+    if($login) {
+        $set[] = "`login` = '{$login}'";
+    }
+    
+    if($password) {
+        $password = md5(trim($password));
+        $set[] = "`password` = '{$password}'";
+    }
+    
+    $setStr = implode($set, ", ");
+    $sql = "UPDATE teacher
+            SET {$setStr}
+            WHERE id = '{$teacherId}'";
+    
+    $rs = db()->query($sql);
+    
+    return $rs;
+}
+
+function deleteTeacher($id) {
+    $sql = "DELETE FROM `teacher_course` WHERE `teacher_id` = {$id}; ";
+    $sql .= "DELETE FROM `teacher` WHERE `id` = {$id}; ";
+    $rs = db()->multi_query($sql);
+    
+    return $rs;
+}
 
 

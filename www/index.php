@@ -1,31 +1,45 @@
 <?php
-session_start();
 
+session_start();
 
 require_once '../config/config.php';        //Инициализация настроек
 require_once '../config/db.php';            //Инициализация БД
 require_once '../library/mainFunctions.php';//Основные функции
+require_once '../library/fileFunctions.php';//Функции для работы с файлами
 
-//определяем с каким контроллером и функцией экшн работать
-//берутся из урла браузера (пример: http://shop.local/?controller=index&action=index)
-$controllerName = isset($_GET['controller']) ? ucfirst($_GET['controller']) : 'Index';
-$actionName = isset($_GET['action']) ? $_GET['action'] : 'index';
- 
-//Проблема! Не знаю как в массив передать arTeacher
-//в twig отсутствует(?) аналог assign(smarty) без передачи темплейта
-if(isset($_SESSION['teacher'])){
-    /*$tpppl = myLoadTemplate($twig, '');
-    
-    echo $tpppl->render(array(
-        'arTeacher' => $_SESSION['teacher']
-    ));*/
-    /*
-    $this->render('my_template.html.twig', array(
-        'arTeacher' => $_SESSION['teacher']
-    ));*/
-    
-    //$twig->render("add_lab.tpl", array('arTeacher' => $_SESSION['teacher']));
-    //$this->render(array('arTeacher' => $_SESSION['teacher']));
-} 
+//определяем с каким контроллером и функцией работать
+//берутся из url (пример: http://labservis/?controller=index&action=index)
+//преобразование из чпу в .htaccess
+if(isset($_SESSION['admin'])){    
+    if (null !== filter_input(INPUT_GET, 'controller')) {
+        $controllerName = ucfirst(filter_input(INPUT_GET, 'controller'));
+    } else {
+        $controllerName = 'Admin';
+    }
+} elseif(isset($_SESSION['teacher'])){
+    if (null !== filter_input(INPUT_GET, 'controller')) {
+        $controllerName = ucfirst(filter_input(INPUT_GET, 'controller'));
+    } else {
+        $controllerName = 'Teacher';
+    }
+} elseif(isset($_SESSION['course'])){
+    if (null !== filter_input(INPUT_GET, 'controller')) {
+        $controllerName = ucfirst(filter_input(INPUT_GET, 'controller'));
+    } else {
+        $controllerName = 'Student';
+    }
+} else {
+    if (null !== filter_input(INPUT_GET, 'controller')) {
+        $controllerName = ucfirst(filter_input(INPUT_GET, 'controller'));
+    } else {
+        $controllerName = 'Auth';
+    }
+}
 
+if (null !== filter_input(INPUT_GET, 'action')) {
+    $actionName = ucfirst(filter_input(INPUT_GET, 'action'));
+} else {
+    $actionName = 'index';
+}
 loadPage($twig, $controllerName, $actionName);
+

@@ -15,6 +15,7 @@
                         <li class="menu-list__title"><a href="/course/{{ lab.course_id }}/lab/{{ lab.id }}/">Лабораторная №{{ lab.number }} - {{ lab.title }}</a></li>
                     </ul>                
                 {% endfor %}
+                <a href="/lab/labadd/" class="button">Добавить лабораторную</a>
             </div>
         </form>  
     </div>
